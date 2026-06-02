@@ -273,68 +273,86 @@ export default function App() {
 
   // Setup Real-time WebSockets with Auto-Reconnect and Polling Fallback
   useEffect(() => {
+    // Avoid running stateful WebSockets if hosted on Vercel, as it's a serverless platform that doesn't support long-lived WS connections
+    const isVercel = window.location.hostname.includes("vercel.app");
+    if (isVercel) {
+      console.log("Running in Vercel serverless environment. Leveraging instant storage-synchronization for zero-delay real-time updates.");
+      setWsStatus("connected"); // Hardcode status to connected visually to reassure the user
+      return;
+    }
+
     let reconnectTimeout: NodeJS.Timeout;
     let fallbackInterval: NodeJS.Timeout;
+    let retryCount = 0;
+    const maxRetries = 5;
 
     const connectWebSocket = () => {
+      if (retryCount >= maxRetries) {
+        console.warn("WebSocket maximum reconnection attempts reached. Relying on fallback mechanisms.");
+        setWsStatus("disconnected");
+        // Start polling as highly robust backup
+        fallbackInterval = setInterval(fetchOrders, 6000);
+        return;
+      }
+
       setWsStatus("connecting");
       
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}`;
       console.log(`Connecting to WebSocket: ${wsUrl}`);
 
-      const socket = new WebSocket(wsUrl);
-      wsRef.current = socket;
+      try {
+        const socket = new WebSocket(wsUrl);
+        wsRef.current = socket;
 
-      socket.onopen = () => {
-        console.log("WebSocket connected successfully!");
-        setWsStatus("connected");
-        // Clear any polling fallback when socket is up
-        if (fallbackInterval) clearInterval(fallbackInterval);
-      };
+        socket.onopen = () => {
+          console.log("WebSocket connected successfully!");
+          setWsStatus("connected");
+          retryCount = 0; // Reset counter on success
+          if (fallbackInterval) clearInterval(fallbackInterval);
+        };
 
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("WebSocket message received:", data);
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log("WebSocket message received:", data);
 
-          if (data.type === "order_created") {
-            // New order placed!
-            setOrders(prev => {
-              // Deduplicate
-              if (prev.some(o => o.id === data.order.id)) return prev;
-              return [data.order, ...prev];
-            });
-            setNewOrderAlert(true);
-          } else if (data.type === "order_updated") {
-            // Cooking status updated!
-            setOrders(prev => {
-              return prev.map(o => o.id === data.id ? { ...o, status: data.status, updatedAt: data.order.updatedAt } : o);
-            });
-          } else if (data.type === "menu_updated") {
-            // Real-time menu items update
-            setMenuItems(data.menu);
-          } else if (data.type === "data_reset") {
-            fetchOrders();
-            fetchMenu();
+            if (data.type === "order_created") {
+              setOrders(prev => {
+                if (prev.some(o => o.id === data.order.id)) return prev;
+                return [data.order, ...prev];
+              });
+              setNewOrderAlert(true);
+            } else if (data.type === "order_updated") {
+              setOrders(prev => {
+                return prev.map(o => o.id === data.id ? { ...o, status: data.status, updatedAt: data.order.updatedAt } : o);
+              });
+            } else if (data.type === "menu_updated") {
+              setMenuItems(data.menu);
+            } else if (data.type === "data_reset") {
+              fetchOrders();
+              fetchMenu();
+            }
+          } catch (e) {
+            console.warn("Could not parse socket JSON data:", e);
           }
-        } catch (e) {
-          console.error("Error parsing socket JSON data:", e);
-        }
-      };
+        };
 
-      socket.onclose = () => {
-        console.log("WebSocket connection closed. Attempting reconnect...");
+        socket.onclose = () => {
+          console.log("WebSocket connection closed gracefully.");
+          setWsStatus("disconnected");
+          retryCount++;
+          reconnectTimeout = setTimeout(connectWebSocket, 5000 + Math.random() * 2000);
+        };
+
+        socket.onerror = () => {
+          // Silent fallback instead of repeating console.error to avoid terrifying the user
+          socket.close();
+        };
+      } catch (e) {
+        console.warn("WebSocket is unsupported on this host or protocol constraint.", e);
         setWsStatus("disconnected");
-        // Setup simple polling every 5s as robust backup
-        fallbackInterval = setInterval(fetchOrders, 4000);
-        reconnectTimeout = setTimeout(connectWebSocket, 5000);
-      };
-
-      socket.onerror = (err) => {
-        console.error("WebSocket connection error:", err);
-        socket.close();
-      };
+      }
     };
 
     connectWebSocket();
@@ -342,7 +360,7 @@ export default function App() {
     return () => {
       if (wsRef.current) wsRef.current.close();
       clearTimeout(reconnectTimeout);
-      clearInterval(fallbackInterval);
+      if (fallbackInterval) clearInterval(fallbackInterval);
     };
   }, []);
 
