@@ -118,13 +118,21 @@ export default function App() {
     });
   };
 
-  // Fetch initial orders
+  // Fetch initial and updated orders
   const fetchOrders = () => {
     fetch("/api/orders")
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          saveOrdersLocally(data);
+          // If polling brings active orders we didn't have, trigger new order alerts the same way WebSockets do!
+          setOrders(prev => {
+            const hasNew = data.some(serverOrder => !prev.some(localOrder => localOrder.id === serverOrder.id));
+            if (hasNew && prev.length > 0) {
+              setNewOrderAlert(true);
+            }
+            return data;
+          });
+          localStorage.setItem("mostafa_orders", JSON.stringify(data));
         }
       })
       .catch(err => {
@@ -270,6 +278,28 @@ export default function App() {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
+
+  // Continuous background data synchronization for all active devices (mobile / tablet sync)
+  useEffect(() => {
+    // This background polling is exceptionally important to keep mobile & tablet fully in phase,
+    // even if the WebSocket is sleeping, disconnected, or blocked on mobile networks.
+    let pollInterval: NodeJS.Timeout;
+
+    const runPollingSync = () => {
+      fetchOrders();
+      fetchMenu();
+    };
+
+    // If WebSocket is connected, we poll slowly (every 12 seconds) as a safety backup.
+    // If WebSocket is offline/connecting, we poll rapidly (every 3.5 seconds) for real-time responsiveness.
+    const delay = wsStatus === "connected" ? 12000 : 3500;
+    
+    pollInterval = setInterval(runPollingSync, delay);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [wsStatus]);
 
   // Setup Real-time WebSockets with Auto-Reconnect and Polling Fallback
   useEffect(() => {
