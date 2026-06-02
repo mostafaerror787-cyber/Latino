@@ -237,17 +237,12 @@ export default function App() {
 
         <header className="bg-black/40 border-b border-white/10 px-6 py-4 sticky top-0 z-50 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl overflow-hidden flex items-center justify-center border border-white/10 shadow-md">
-              <img 
-                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxtjEXQRJnFgE95sjSHdu2TvEN7UZ4B0R9VQ&s" 
-                alt="Café Latino Logo" 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center border border-amber-500/30 shadow-md text-white">
+              <Coffee className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-cairo font-bold text-lg text-white">كافيه لاتينو - شاشة المطبخ الذكية</h1>
-              <p className="text-[11px] text-zinc-400 font-sans">Full Screen Real-time Barista Terminal • Café Latino</p>
+              <h1 className="font-cairo font-bold text-lg text-white">Mostafa Coffee Shop - شاشة المطبخ الذكية</h1>
+              <p className="text-[11px] text-zinc-400 font-sans">Full Screen Real-time Barista Terminal • Mostafa Coffee Shop</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -290,17 +285,12 @@ export default function App() {
 
         <header className="bg-black/40 border-b border-white/10 px-6 py-4 sticky top-0 z-50 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl overflow-hidden flex items-center justify-center border border-white/10 shadow-md">
-              <img 
-                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxtjEXQRJnFgE95sjSHdu2TvEN7UZ4B0R9VQ&s" 
-                alt="Café Latino Logo" 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center border border-amber-500/30 shadow-md text-white">
+              <Coffee className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-cairo font-bold text-lg text-white font-sans">كافيه لاتينو - لوحة طباعة الـ QR والإدارة</h1>
-              <p className="text-[11px] text-zinc-400 font-sans">View & Print Table QR Codes for Café Latino</p>
+              <h1 className="font-cairo font-bold text-lg text-white font-sans">Mostafa Coffee Shop - لوحة طباعة الـ QR والإدارة</h1>
+              <p className="text-[11px] text-zinc-400 font-sans">View & Print Table QR Codes for Mostafa Coffee Shop</p>
             </div>
           </div>
           <button 
@@ -350,18 +340,14 @@ export default function App() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 max-w-2xl mx-auto w-full text-center py-12">
         
         {/* Logo / Icon */}
-        <div className="w-24 h-24 bg-white rounded-[24px] overflow-hidden flex items-center justify-center shadow-xl shadow-amber-900/10 mb-6 border-2 border-amber-500/40 animate-pulse" style={{ animationDuration: '4s' }}>
-          <img 
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxtjEXQRJnFgE95sjSHdu2TvEN7UZ4B0R9VQ&s" 
-            alt="Café Latino Logo" 
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
+        <div className="w-24 h-24 bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-800 rounded-[28px] flex flex-col items-center justify-center shadow-2xl shadow-amber-500/20 mb-6 border-2 border-amber-400/50 animate-pulse" style={{ animationDuration: '4s' }}>
+          <Coffee className="w-10 h-10 text-white stroke-[1.5]" />
+          <span className="text-[10px] font-mono font-extrabold text-amber-200 mt-1 uppercase tracking-widest">MCS</span>
         </div>
 
         {/* Café Name */}
         <h1 className="font-cairo font-extrabold text-4xl text-white tracking-wide mb-2">
-          كافيه لاتينو • Café Latino
+          Mostafa Coffee Shop • مصطفى كوفي شوب
         </h1>
         <div className="inline-block mt-1">
           <span className="text-[11px] bg-amber-600/20 text-amber-400 border border-amber-600/35 px-3 py-1 rounded-full font-bold font-cairo">
@@ -371,7 +357,7 @@ export default function App() {
 
         {/* Portal choice title */}
         <p className="mt-4 text-zinc-400 font-cairo text-sm max-w-md">
-          أهلاً بك في لوحة تحكّم كافيه لاتينو الذكية. يرجى اختيار القسم المطلوب لمباشرة العمل ومتابعة الطلبات:
+          أهلاً بك في لوحة تحكّم Mostafa Coffee Shop الذكية. يرجى اختيار القسم المطلوب لمباشرة العمل ومتابعة الطلبات:
         </p>
 
         {/* Administration portal cards */}
@@ -427,7 +413,7 @@ export default function App() {
 
       {/* Discrete footer for administrative operations */}
       <footer className="py-6 px-6 text-center border-t border-white/5 text-[11px] text-zinc-500 font-cairo mt-auto flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto w-full relative z-20">
-        <span>منظومة كافيه لاتينو لإدارة الطاولات الذكية QR • {new Date().getFullYear()}</span>
+        <span>منظومة Mostafa Coffee Shop لإدارة الطاولات الذكية QR • {new Date().getFullYear()}</span>
         <div className="flex items-center gap-3 text-[10px] text-zinc-600">
           <button 
             onClick={() => navigate("/kitchen")} 

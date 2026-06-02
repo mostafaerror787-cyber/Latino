@@ -417,7 +417,7 @@ export default function KitchenDashboard({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/2 border border-white/10 p-5 rounded-2xl">
             <div>
               <h3 className="font-cairo font-bold text-base text-amber-400 flex items-center gap-2">
-                ☕ قائمة منيو مشروبات كافيه لاتينو
+                ☕ قائمة منيو مشروبات Mostafa Coffee Shop
               </h3>
               <p className="text-xs text-zinc-400 font-sans mt-0.5 leading-relaxed">
                 يمكن للباريستا إضافة منتجات باردة أو ساخنة جديدة، أو حذفها نهائياً. التعديلات تنعكس في المنيو الخاص بالزبائن فورا عبر الـ QR!
@@ -468,7 +468,7 @@ export default function KitchenDashboard({
                   <div>
                     <label className="block text-[11px] text-zinc-400 font-cairo mb-1">وصف المنتج (عربي):</label>
                     <textarea 
-                      placeholder="مثال: حليب بليند مع الحليب المكثف المحلى والثلج وإسبريسو لاتينو الفاخر"
+                      placeholder="مثال: حليب بليند مع الحليب المكثف المحلى والثلج وإسبريسو موكا الفاخر"
                       value={newItemDescAr}
                       onChange={(e) => setNewItemDescAr(e.target.value)}
                       rows={2}

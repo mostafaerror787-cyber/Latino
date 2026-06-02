@@ -246,15 +246,10 @@ export default function CustomerMenu({ tableId, onBack, orders, onOrderPlaced, m
               طاولة {tableId} • Table {tableId}
             </span>
             <h1 className="font-cairo font-bold text-lg text-white flex items-center gap-2 mt-0.5">
-              <div className="w-6 h-6 rounded-md overflow-hidden bg-white inline-block border border-white/20">
-                <img 
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxtjEXQRJnFgE95sjSHdu2TvEN7UZ4B0R9VQ&s" 
-                  alt="Logo"
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center border border-amber-500/30">
+                <Coffee className="w-4 h-4 text-white" />
               </div>
-              كافيه لاتينو
+              Mostafa Coffee Shop
             </h1>
           </div>
         </div>
