@@ -231,6 +231,44 @@ export default function App() {
   useEffect(() => {
     fetchOrders();
     fetchMenu();
+
+    // Setup cross-tab real-time state synchronization when running on static Vercel or locally
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "mostafa_orders" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setOrders(parsed);
+          }
+        } catch (err) {
+          console.error("Storage sync error:", err);
+        }
+      }
+      if (e.key === "mostafa_menu_items" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setMenuItems(parsed);
+          }
+        } catch (err) {
+          console.error("Storage menu sync error:", err);
+        }
+      }
+      if (e.key === "mostafa_activity_logs" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setActivityLogs(parsed);
+          }
+        } catch (err) {
+          console.error("Storage logs sync error:", err);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   // Setup Real-time WebSockets with Auto-Reconnect and Polling Fallback
