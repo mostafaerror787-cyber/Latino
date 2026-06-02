@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Order, MenuItem } from "../types";
+import { Order, MenuItem, ActivityLog } from "../types";
 import { 
   Bell, 
   BellRing, 
@@ -18,7 +18,8 @@ import {
   PlusCircle,
   FolderPlus,
   Eye,
-  Settings
+  Settings,
+  ClipboardList
 } from "lucide-react";
 
 interface KitchenDashboardProps {
@@ -30,6 +31,8 @@ interface KitchenDashboardProps {
   menuItems?: MenuItem[];
   onAddMenuItem?: (itemData: any) => Promise<boolean>;
   onDeleteMenuItem?: (id: string) => Promise<boolean>;
+  activityLogs?: ActivityLog[];
+  onClearLogs?: () => void;
 }
 
 export default function KitchenDashboard({ 
@@ -40,7 +43,9 @@ export default function KitchenDashboard({
   onClearAlert,
   menuItems = [],
   onAddMenuItem,
-  onDeleteMenuItem
+  onDeleteMenuItem,
+  activityLogs = [],
+  onClearLogs
 }: KitchenDashboardProps) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -617,58 +622,159 @@ export default function KitchenDashboard({
             </form>
           )}
 
-          {/* Current menu items lists */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {menuItems.map((item) => (
-              <div key={item.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex gap-3 relative hover:border-amber-500/20 transition-all group">
-                
-                {/* Product thumbnail */}
-                <div className="w-16 h-16 bg-white/5 rounded-xl overflow-hidden shrink-0 border border-white/10">
-                  <img 
-                    src={item.image} 
-                    alt={item.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
+           {/* Table of Menu items as requested */}
+          <div className="overflow-x-auto border border-white/10 rounded-2xl bg-white/2 shadow-inner">
+            <table className="w-full text-right border-collapse min-w-[700px]">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/5 text-zinc-300 font-cairo text-[11px] font-bold">
+                  <th className="p-3.5 pr-5">صورة المنتج</th>
+                  <th className="p-3.5">اسم الصنف بالكامل</th>
+                  <th className="p-3.5">الفئة</th>
+                  <th className="p-3.5">السعر بالجنيه EGP</th>
+                  <th className="p-3.5">خيارات الزبون المدعومة</th>
+                  <th className="p-3.5 text-center">إجراءات الإيقاف / الحذف</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-xs">
+                {menuItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-white/5 transition-all group font-sans">
+                    {/* Thumbnail */}
+                    <td className="p-3 pr-5">
+                      <div className="w-11 h-11 bg-white/5 rounded-xl overflow-hidden border border-white/10 shrink-0">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    </td>
 
-                {/* Product details */}
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                      <span className="text-[9px] bg-amber-600/20 text-amber-300 px-1.5 py-0.5 rounded font-cairo">
+                    {/* Name */}
+                    <td className="p-3">
+                      <div>
+                        <h5 className="font-cairo font-bold text-xs text-white">{item.nameAr}</h5>
+                        <p className="text-[10px] text-zinc-400 font-sans mt-0.5">{item.name} • <span className="text-[9px] font-mono text-amber-500/80">#{item.id.replace("item-", "")}</span></p>
+                      </div>
+                    </td>
+
+                    {/* Category */}
+                    <td className="p-3">
+                      <span className="text-[10px] font-cairo bg-amber-600/10 text-amber-300 border border-amber-500/15 px-2 py-0.5 rounded">
                         {item.category === "coffee" ? "☕ قهوة ساخنة" : item.category === "tea_matcha" ? "🍃 ماتشا وشاي" : item.category === "sweets" ? "🍰 حلويات" : "🍹 موخيتو وبارد"}
                       </span>
-                      <span className="text-[10px] font-mono font-extrabold text-zinc-500">#{item.id.replace("item-", "")}</span>
-                    </div>
-                    <h5 className="font-cairo font-bold text-[13px] text-white truncate">{item.nameAr}</h5>
-                    <p className="text-[10px] text-zinc-400 font-sans truncate">{item.name}</p>
-                  </div>
-                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/5">
-                    <span className="font-sans font-bold text-xs text-amber-500">
-                      {item.price} EGP
-                    </span>
-                    
-                    {/* Delete Item action */}
-                    {onDeleteMenuItem && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`هل أنت متأكد من رغبتك في حذف "${item.nameAr}" بالكامل من المنيو؟`)) {
-                            onDeleteMenuItem(item.id);
-                          }
-                        }}
-                        className="p-1 px-2.5 text-[10px] font-cairo text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer border border-white/5 hover:border-red-500/25"
-                        title="حذف المنتج من المنيو"
-                      >
-                        🗑️ حذف
-                      </button>
-                    )}
-                  </div>
-                </div>
+                    </td>
 
+                    {/* Price */}
+                    <td className="p-3">
+                      <span className="font-sans font-bold text-xs text-emerald-400">{item.price} EGP</span>
+                    </td>
+
+                    {/* Options checkboxes details */}
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        {item.options?.sizes?.length ? (
+                          <span className="text-[9px] font-cairo bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded border border-white/5">أحجام ({item.options.sizes.length})</span>
+                        ) : null}
+                        {item.options?.sugarLevels?.length ? (
+                          <span className="text-[9px] font-cairo bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded border border-white/5">تحكم السكر</span>
+                        ) : null}
+                        {item.options?.milkTypes?.length ? (
+                          <span className="text-[9px] font-cairo bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded border border-white/5">بدائل الحليب</span>
+                        ) : null}
+                        {!item.options?.sizes?.length && !item.options?.sugarLevels?.length && !item.options?.milkTypes?.length ? (
+                          <span className="text-[9px] font-cairo bg-zinc-800/20 text-zinc-500 px-1.5 py-0.5 rounded border border-dashed border-white/5">بدون إضافات</span>
+                        ) : null}
+                      </div>
+                    </td>
+
+                    {/* Edit Delete action */}
+                    <td className="p-3 text-center">
+                      {onDeleteMenuItem && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`هل أنت متأكد من رغبتك في حذف الصنف "${item.nameAr}" من المنيو بالكامل؟`)) {
+                              onDeleteMenuItem(item.id);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 text-[10px] font-cairo font-bold text-red-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-colors cursor-pointer border border-red-500/10 hover:border-red-500/30"
+                        >
+                          🗑️ حذف نهائي
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Historical Activity log/operations changes list because client explicitly requested it */}
+          <div className="mt-8 border-t border-white/10 pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4.5">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-amber-500 shrink-0" />
+                <div>
+                  <h3 className="font-cairo font-bold text-sm text-white">سجل العمليات والتغيرات التاريخي الذكي (Change History)</h3>
+                  <p className="text-[10px] text-zinc-500 font-sans">Automatic live change tracking & state history logs</p>
+                </div>
               </div>
-            ))}
+              {onClearLogs && activityLogs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("هل ترغب فعلاً في حذف ومسح جميع تفاصيل السجل التاريخي كلياً؟")) {
+                      onClearLogs();
+                    }
+                  }}
+                  className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-[10px] font-cairo font-bold rounded-lg transition-all"
+                >
+                  🧹 مسح سجل التغييرات التاريخي
+                </button>
+              )}
+            </div>
+
+            {activityLogs.length === 0 ? (
+              <div className="text-center py-6 bg-white/1 border border-white/5 rounded-2xl">
+                <p className="text-zinc-500 text-xs font-cairo leading-relaxed">لم تسجل أي عمليات تغيير تذكر حتى الآن. كل تعديل للأصناف أو حالات الطلبات والمطبخ يظهر هنا مباشرة لراحة الزبائن والملاّك.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-white/5 rounded-2xl bg-black/30">
+                <table className="w-full text-right border-collapse min-w-[550px]">
+                  <thead>
+                    <tr className="border-b border-white/5 bg-white/2 text-zinc-400 font-cairo text-[10px]">
+                      <th className="p-2.5 pr-4 w-24">التوقيت</th>
+                      <th className="p-2.5 w-32">العملية المجرية</th>
+                      <th className="p-2.5">الحدث والتعديل المجرى بالكامل</th>
+                      <th className="p-2.5 hidden md:table-cell">بيانات ثانوية</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 font-cairo text-[11px] text-zinc-300">
+                    {activityLogs.map((log) => {
+                      let typeBadge = "bg-white/5 text-zinc-400 border-white/5";
+                      if (log.type === "add_item") typeBadge = "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
+                      else if (log.type === "delete_item") typeBadge = "bg-red-500/10 text-red-300 border-red-500/20";
+                      else if (log.type === "update_order") typeBadge = "bg-amber-500/10 text-amber-300 border-amber-500/20";
+                      else if (log.type === "place_order") typeBadge = "bg-sky-500/10 text-sky-300 border-sky-500/20";
+
+                      return (
+                        <tr key={log.id} className="hover:bg-white/1 transition-colors">
+                          <td className="p-2.5 pr-4 font-mono text-[9px] text-zinc-400 font-bold">{log.timestamp}</td>
+                          <td className="p-2.5">
+                            <span className={`inline-block border px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold ${typeBadge}`}>
+                              {log.typeNameAr}
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-zinc-100 font-bold leading-relaxed">{log.description}</td>
+                          <td className="p-2.5 hidden md:table-cell text-[10px] text-zinc-400">{log.details || "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

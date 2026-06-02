@@ -1,13 +1,58 @@
 import { useState, useEffect, useRef } from "react";
-import { Order } from "./types";
+import { Order, ActivityLog } from "./types";
 import CustomerMenu from "./components/CustomerMenu";
 import KitchenDashboard from "./components/KitchenDashboard";
 import QRGenerator from "./components/QRGenerator";
 import { Coffee, Columns, Monitor, Sparkles, MessageSquare, AlertCircle, QrCode, ArrowLeft } from "lucide-react";
+import { DEFAULT_MENU_ITEMS } from "./data/mockMenu";
 
 export default function App() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [menuItems, setMenuItems] = useState<any[]>([]);
+  // Local-first persistent states
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const saved = localStorage.getItem("mostafa_orders");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved orders:", e);
+      }
+    }
+    return [];
+  });
+
+  const [menuItems, setMenuItems] = useState<any[]>(() => {
+    const saved = localStorage.getItem("mostafa_menu_items");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error("Failed to parse saved menu items:", e);
+      }
+    }
+    return DEFAULT_MENU_ITEMS;
+  });
+
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
+    const saved = localStorage.getItem("mostafa_activity_logs");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved activity logs:", e);
+      }
+    }
+    return [
+      {
+        id: "initial-log",
+        timestamp: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        type: "system",
+        typeNameAr: "النظام الذكي",
+        description: "تم تشغيل نظام Mostafa Coffee Shop بنجاح وبدء تتبع العمليات."
+      }
+    ];
+  });
+
   const [customerTable, setCustomerTable] = useState<string | null>(null);
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
@@ -46,14 +91,45 @@ export default function App() {
     setCustomerTable(tableVal);
   };
 
+  // Helper helper to write and set states
+  const saveMenuItemsLocally = (items: any[]) => {
+    localStorage.setItem("mostafa_menu_items", JSON.stringify(items));
+    setMenuItems(items);
+  };
+
+  const saveOrdersLocally = (newOrders: Order[]) => {
+    localStorage.setItem("mostafa_orders", JSON.stringify(newOrders));
+    setOrders(newOrders);
+  };
+
+  const logActivity = (type: string, typeNameAr: string, description: string, details?: string) => {
+    const newLog: ActivityLog = {
+      id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      type,
+      typeNameAr,
+      description,
+      details
+    };
+    setActivityLogs(prev => {
+      const updated = [newLog, ...prev].slice(0, 50); // Keep last 50 logs
+      localStorage.setItem("mostafa_activity_logs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // Fetch initial orders
   const fetchOrders = () => {
     fetch("/api/orders")
       .then(res => res.json())
       .then(data => {
-        setOrders(data);
+        if (Array.isArray(data)) {
+          saveOrdersLocally(data);
+        }
       })
-      .catch(err => console.error("Error fetching orders:", err));
+      .catch(err => {
+        console.warn("Express API Server for orders unavailable. Operating in local storage mode.", err);
+      });
   };
 
   // Fetch initial menu items
@@ -61,13 +137,48 @@ export default function App() {
     fetch("/api/menu")
       .then(res => res.json())
       .then(data => {
-        setMenuItems(data);
+        if (Array.isArray(data) && data.length > 0) {
+          saveMenuItemsLocally(data);
+        }
       })
-      .catch(err => console.error("Error fetching menu:", err));
+      .catch(err => {
+        console.warn("Express API Server for menu unavailable. Operating in local storage mode.", err);
+      });
   };
 
   // Add menu item API handler
   const handleAddMenuItem = async (itemData: any) => {
+    const newItemId = `item-${Date.now()}`;
+    const newItem = {
+      id: newItemId,
+      name: itemData.name,
+      nameAr: itemData.nameAr,
+      category: itemData.category,
+      price: Number(itemData.price),
+      description: itemData.description || "",
+      descriptionAr: itemData.descriptionAr || "",
+      image: itemData.image || "https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&q=80&w=500",
+      options: itemData.options || {}
+    };
+
+    // Optimistically add and save to localStorage immediately so it is 100% fail-safe and fast!
+    setMenuItems(prev => {
+      // Prevent duplicates based on name/category to solve common duplicate-clicks or sync triggers
+      if (prev.some(item => item.id === newItem.id || (item.nameAr === newItem.nameAr && item.category === newItem.category))) {
+        return prev;
+      }
+      const updated = [...prev, newItem];
+      localStorage.setItem("mostafa_menu_items", JSON.stringify(updated));
+      return updated;
+    });
+
+    logActivity(
+      "add_item",
+      "إضافة منتج",
+      `تم إضافة منتج جديد بنجاح: "${newItem.nameAr}" بسعر ${newItem.price} جنيه`,
+      `الفئة والمواصفات: ${newItem.category === "coffee" ? "قهوة" : "مشروبات أخرى"} بسعر ${newItem.price} EGP`
+    );
+
     try {
       const response = await fetch("/api/menu", {
         method: "POST",
@@ -76,33 +187,45 @@ export default function App() {
       });
       if (response.ok) {
         const data = await response.json();
-        setMenuItems(prev => {
-          // Prevent duplicates
-          if (prev.some(item => item.id === data.item.id)) return prev;
-          return [...prev, data.item];
-        });
-        return true;
+        // Server responded, sync just in case
+        console.log("Add menu item success synced with backend.");
       }
     } catch (err) {
-      console.error("Error adding product:", err);
+      console.warn("Server POST offline. Kept locally in localStorage for offline/Static support on Vercel.", err);
     }
-    return false;
+    return true; // Return true to signal submission success
   };
 
   // Delete menu item API handler
   const handleDeleteMenuItem = async (id: string) => {
+    let deletedName = "";
+    setMenuItems(prev => {
+      const match = prev.find(item => item.id === id);
+      if (match) deletedName = match.nameAr;
+      const updated = prev.filter(item => item.id !== id);
+      localStorage.setItem("mostafa_menu_items", JSON.stringify(updated));
+      return updated;
+    });
+
+    if (deletedName) {
+      logActivity(
+        "delete_item",
+        "حذف منتج",
+        `تم حذف المنتج: "${deletedName}" نهائياً من قائمة المنيو`
+      );
+    }
+
     try {
       const response = await fetch(`/api/menu/${id}`, {
         method: "DELETE"
       });
       if (response.ok) {
-        setMenuItems(prev => prev.filter(item => item.id !== id));
-        return true;
+        console.log("Delete menu item success synced with backend.");
       }
     } catch (err) {
-      console.error("Error deleting product:", err);
+      console.warn("Server DELETE offline. Kept deleted in client storage.", err);
     }
-    return false;
+    return true;
   };
 
   useEffect(() => {
@@ -187,6 +310,28 @@ export default function App() {
 
   // API Trigger: Update order status (Kitchen action)
   const updateOrderStatus = async (id: string, newStatus: Order["status"]) => {
+    let orderNum = id;
+    let customerName = "";
+    
+    // Update locally immediately so the screen is lightning fast and keeps updates on Vercel
+    setOrders(prev => {
+      const match = prev.find(o => o.id === id);
+      if (match) {
+        customerName = match.customerName;
+      }
+      const updated = prev.map(o => o.id === id ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o);
+      localStorage.setItem("mostafa_orders", JSON.stringify(updated));
+      return updated;
+    });
+
+    const statusAr = newStatus === "preparing" ? "جاري التحضير" : newStatus === "ready" ? "جاهز للتسليم" : newStatus === "completed" ? "مكتمل" : newStatus === "cancelled" ? "ملغي" : "معلق";
+
+    logActivity(
+      "update_order",
+      "تعديل حالة طلب",
+      `تم تغيير حالة الطلب #${orderNum} (${customerName || "الزبون"}) إلى "${statusAr}"`
+    );
+
     try {
       const response = await fetch(`/api/orders/${id}`, {
         method: "PATCH",
@@ -197,19 +342,22 @@ export default function App() {
       if (!response.ok) {
         throw new Error("Failed to patch status");
       }
-
-      const data = await response.json();
-      if (data.success) {
-        // Optimistically update locally
-        setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
-      }
     } catch (err) {
-      console.error("Error updating order status:", err);
+      console.warn("Server PATCH status offline. Kept updated in client storage.", err);
     }
   };
 
   // API Trigger: Reset system orders for demo
   const resetDemoOrders = async () => {
+    setOrders([]);
+    localStorage.removeItem("mostafa_orders");
+
+    logActivity(
+      "reset",
+      "إعادة تهيئة",
+      "تم تصفير وإعادة تعيين كود جميع الطلبات النشطة والمنتهية في لوحة العمليات"
+    );
+
     try {
       const response = await fetch("/api/orders/reset", {
         method: "POST"
@@ -218,13 +366,25 @@ export default function App() {
         fetchOrders();
       }
     } catch (err) {
-      console.error("Error resetting demo:", err);
+      console.warn("Server reset endpoint offline. Cleared in local storage.", err);
     }
   };
 
   // Callback when a customer successfully checks out on their mobile client
   const handleCustomerOrderPlaced = (newOrder: Order) => {
-    setOrders(prev => [newOrder, ...prev]);
+    setOrders(prev => {
+      if (prev.some(o => o.id === newOrder.id)) return prev;
+      const updated = [newOrder, ...prev];
+      localStorage.setItem("mostafa_orders", JSON.stringify(updated));
+      return updated;
+    });
+
+    logActivity(
+      "place_order",
+      "طلب جديد",
+      `تم استلام طلب جديد برقم ${newOrder.id} من طاولة ${newOrder.tableNumber} بقيمة ${newOrder.total} جنيه`,
+      `اسم الزبون: ${newOrder.customerName}. أصناف الطلب: ${newOrder.items.map(i => `${i.nameAr} (${i.quantity})`).join("، ")}`
+    );
   };
 
   // --- RENDER PAGE 1: KITCHEN DISPLAY ROUTE (/kitchen) ---
@@ -269,6 +429,11 @@ export default function App() {
             menuItems={menuItems}
             onAddMenuItem={handleAddMenuItem}
             onDeleteMenuItem={handleDeleteMenuItem}
+            activityLogs={activityLogs}
+            onClearLogs={() => {
+              setActivityLogs([]);
+              localStorage.removeItem("mostafa_activity_logs");
+            }}
           />
         </main>
       </div>

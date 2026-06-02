@@ -36,3 +36,13 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  type: string;
+  typeNameAr: string;
+  description: string;
+  details?: string;
+}
+
