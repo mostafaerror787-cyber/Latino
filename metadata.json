@@ -1,0 +1,6 @@
+{
+  "name": "كافيه لاتينو - Café Latino",
+  "description": "A real-time café ordering system allowing customers to scan a table QR code, browse a rich menu, and place orders that instantly sync to the kitchen display.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
